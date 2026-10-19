@@ -4,8 +4,10 @@ window.TIENDA = {
   // WhatsApp de pedidos en formato internacional, sin + ni espacios
   whatsapp: "5492615166830",
   instagram: "sabores.caninos",
-  // Punto de salida de los repartos para calcular los km: { lat: -32.9, lng: -68.8 }
-  origen: null,            // [COMPLETAR]
+  // Punto de salida de los repartos y de retiro en tienda
+  direccionTienda: "Posta del Retamo 1884, Ciudad de Mendoza",
+  // Coordenadas exactas (opcional). Si es null, la web las busca a partir de la dirección.
+  origen: null,
   precioPorKm: 200,
   envioGratisDesde: 30000,
   ofertasSinEnvioGratis: true, // los pedidos con productos en oferta pagan envío
@@ -13,5 +15,5 @@ window.TIENDA = {
   // Días de entrega (0 = domingo … 6 = sábado)
   diasEntrega: [3, 5],
   horarioEntrega: "15 a 19 h",
-  mediosDePago: ["Efectivo", "Transferencia", "Mercado Pago"], // [CONFIRMAR]
+  mediosDePago: ["Transferencia", "Efectivo"],
 };

@@ -64,7 +64,16 @@
     return haversineKm(desde, hasta) * 1.3; // estimación por calle
   }
 
+  async function geocodificar(texto) {
+    const q = encodeURIComponent(texto);
+    const r = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${q}`)).json();
+    return r.length ? { lat: Number(r[0].lat), lng: Number(r[0].lon) } : null;
+  }
+
   async function fijarDestino(punto, fuente) {
+    if (!T.origen && T.direccionTienda) {
+      try { T.origen = await geocodificar(`${T.direccionTienda}, Argentina`); } catch { /* queda a confirmar */ }
+    }
     if (!T.origen) {
       destino = { ...punto, km: null };
       estadoEnvio("Ubicación guardada. Te confirmamos el costo del envío por WhatsApp.");
@@ -82,10 +91,9 @@
     if (!dir) return estadoEnvio("Escribí tu dirección primero.");
     estadoEnvio("Buscando tu dirección…");
     try {
-      const q = encodeURIComponent(`${dir}, ${$("#selZona").value || ""}, Mendoza, Argentina`);
-      const r = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${q}`)).json();
-      if (!r.length) return estadoEnvio("No encontramos la dirección. Probá con calle y número, o usá tu ubicación.");
-      await fijarDestino({ lat: Number(r[0].lat), lng: Number(r[0].lon) }, "Tu dirección");
+      const punto = await geocodificar(`${dir}, ${$("#selZona").value || ""}, Mendoza, Argentina`);
+      if (!punto) return estadoEnvio("No encontramos la dirección. Probá con calle y número, o usá tu ubicación.");
+      await fijarDestino(punto, "Tu dirección");
     } catch {
       estadoEnvio("No pudimos calcular ahora. Te confirmamos el envío por WhatsApp.");
     }
@@ -102,6 +110,18 @@
   }
 
   const costoEnvio = (km) => Math.ceil(km) * T.precioPorKm;
+  const esRetiro = () => document.querySelector('[name=modo]:checked')?.value === "retiro";
+
+  function cambiarModo() {
+    const retiro = esRetiro();
+    $("#camposEnvio").hidden = retiro;
+    $("#txtRetiro").hidden = !retiro;
+    $("#txtRetiro").textContent = `Retirás en ${T.direccionTienda}, ${$("#txtDias").textContent.replace(/\.$/, "").toLowerCase()}.`;
+    $("#inDireccion").required = !retiro;
+    $("#selZona").required = !retiro;
+    $("#selDia").options[0].textContent = retiro ? "Día de retiro" : "Día de entrega";
+    pintarCarrito();
+  }
   const estadoEnvio = (txt) => { $("#estadoEnvio").textContent = txt; };
 
   function calcular() {
@@ -111,7 +131,7 @@
     const conOferta = lineas.some((l) => l.v.oferta);
     const gratis = subtotal >= T.envioGratisDesde && !(T.ofertasSinEnvioGratis && conOferta);
     let envio = null;
-    if (gratis) envio = 0;
+    if (gratis || esRetiro()) envio = 0;
     else if (destino && destino.km != null) envio = costoEnvio(destino.km);
     return { lineas, subtotal, ahorro, conOferta, envio, total: subtotal + (envio || 0) };
   }
@@ -136,11 +156,13 @@
       : `<p class="vacio">Tu pedido está vacío.<br>Agregá productos del catálogo 🐾</p>`;
 
     let envioTxt = `${pesos(T.precioPorKm)}/km · calculalo abajo`;
-    if (envio === 0) envioTxt = "¡Gratis!";
+    if (esRetiro()) envioTxt = "Retiro en tienda";
+    else if (envio === 0) envioTxt = "¡Gratis!";
     else if (envio != null) envioTxt = pesos(envio);
     else if (destino) envioTxt = "A confirmar";
     let nota = "";
-    if (conOferta && T.ofertasSinEnvioGratis) nota = "Los pedidos con productos en oferta no tienen envío gratis.";
+    if (esRetiro()) nota = "";
+    else if (conOferta && T.ofertasSinEnvioGratis) nota = "Los pedidos con productos en oferta no tienen envío gratis.";
     else if (subtotal < T.envioGratisDesde) nota = `Te faltan ${pesos(T.envioGratisDesde - subtotal)} para el envío gratis.`;
     $("#totales").innerHTML = lineas.length ? `
       <div class="fila"><span>Subtotal</span><span>${pesos(subtotal)}</span></div>
@@ -172,8 +194,10 @@
     const f = new FormData(e.target);
     const { lineas, subtotal, ahorro, envio, total } = calcular();
     if (!lineas.length || !T.whatsapp) return;
+    const retiro = esRetiro();
     let envioTxt = "a confirmar";
-    if (envio === 0) envioTxt = "gratis";
+    if (retiro) envioTxt = "retiro en tienda";
+    else if (envio === 0) envioTxt = "gratis";
     else if (envio != null) envioTxt = `${pesos(envio)} (${destino.km.toFixed(1)} km)`;
     const nro = "SC-" + new Date().toISOString().slice(2, 16).replace(/\D/g, "");
     const msg = [
@@ -188,9 +212,9 @@
       "",
       `Nombre: ${f.get("nombre")}`,
       `Teléfono: ${f.get("telefono")}`,
-      `Dirección: ${f.get("direccion")} (${f.get("zona")})`,
-      destino ? `Ubicación: https://maps.google.com/?q=${destino.lat.toFixed(5)},${destino.lng.toFixed(5)}` : null,
-      `Entrega: ${f.get("dia")}`,
+      retiro ? `Retiro en: ${T.direccionTienda}` : `Dirección: ${f.get("direccion")} (${f.get("zona")})`,
+      !retiro && destino ? `Ubicación: https://maps.google.com/?q=${destino.lat.toFixed(5)},${destino.lng.toFixed(5)}` : null,
+      `${retiro ? "Retiro" : "Entrega"}: ${f.get("dia")}`,
       `Pago: ${f.get("pago")}`,
       f.get("notas") ? `Notas: ${f.get("notas")}` : null,
     ].filter((x) => x !== null).join("\n");
@@ -258,6 +282,7 @@
       (T.ofertasSinEnvioGratis ? " (no aplica a pedidos con productos en oferta)." : ".");
     const nombresDias = T.diasEntrega.map((n) => ["domingos", "lunes", "martes", "miércoles", "jueves", "viernes", "sábados"][n]);
     $("#txtDias").textContent = `${nombresDias.join(" y ").replace(/^./, (c) => c.toUpperCase())} de ${T.horarioEntrega}.`;
+    $("#txtTienda").textContent = T.direccionTienda;
     $("#selZona").innerHTML += T.zonas.map((z) => `<option>${esc(z)}</option>`).join("");
     $("#selDia").innerHTML += proximasEntregas().map((d) => `<option>${esc(d)}</option>`).join("");
     $("#selPago").innerHTML += T.mediosDePago.map((m) => `<option>${esc(m)}</option>`).join("");
@@ -293,6 +318,7 @@
   $("#marca").addEventListener("change", (e) => cambiarFiltro({ marca: e.target.value }));
   $("#orden").addEventListener("change", (e) => cambiarFiltro({ orden: e.target.value }));
   $("#verMas").addEventListener("click", () => { mostrados += POR_PAGINA; pintarCatalogo(); });
+  document.querySelectorAll("[name=modo]").forEach((r) => r.addEventListener("change", cambiarModo));
   $("#btnCalcular").addEventListener("click", calcularPorDireccion);
   $("#btnUbicacion").addEventListener("click", calcularPorUbicacion);
   $("#inDireccion").addEventListener("input", () => { if (destino) { destino = null; estadoEnvio(""); pintarCarrito(); } });

@@ -78,7 +78,8 @@
       <div class="tarjeta"><h3>Zonas</h3><ul id="listaZonas"></ul></div>
       <div class="tarjeta"><h3>Costo</h3><p id="txtCosto"></p><p class="suave">Lo calculás en el carrito con tu dirección.</p></div>
       <div class="tarjeta"><h3>Envío gratis</h3><p id="txtGratis"></p></div>
-      <div class="tarjeta"><h3>Días y horarios</h3><p id="txtDias"></p></div>
+      <div class="tarjeta"><h3>Días y horarios</h3><p id="txtDias"></p><p class="suave">Pedidos de lunes y martes: llegan miércoles o viernes. De miércoles y jueves: viernes. De viernes a domingo: la semana siguiente.</p></div>
+      <div class="tarjeta"><h3>Retiro en tienda</h3><p id="txtTienda"></p><p class="suave">Mismos días y horarios. Sin costo de envío.</p></div>
       <div class="tarjeta"><h3>Formas de pago</h3><p id="txtPagos"></p></div>
     </div>
   </section>
@@ -111,8 +112,14 @@
     <div class="totales" id="totales"></div>
     <fieldset>
       <legend>Datos de entrega</legend>
+      <div class="modo" role="radiogroup" aria-label="Forma de entrega">
+        <label><input type="radio" name="modo" value="envio" checked> 🚚 Envío</label>
+        <label><input type="radio" name="modo" value="retiro"> 🏠 Retiro</label>
+      </div>
+      <p class="suave" id="txtRetiro" hidden></p>
       <input name="nombre" placeholder="Nombre y apellido" required autocomplete="name">
       <input name="telefono" placeholder="Teléfono" required inputmode="tel" autocomplete="tel">
+      <div id="camposEnvio">
       <input name="direccion" id="inDireccion" placeholder="Dirección (calle, número, barrio)" required autocomplete="street-address">
       <select name="zona" id="selZona" required><option value="">Departamento</option></select>
       <div class="envio-calc">
@@ -120,6 +127,7 @@
         <button type="button" class="btn btn-sec chico" id="btnUbicacion">📍 Usar mi ubicación</button>
       </div>
       <p class="suave" id="estadoEnvio"></p>
+      </div>
       <select name="pago" id="selPago" required><option value="">Forma de pago</option></select>
       <select name="dia" id="selDia" required><option value="">Día de entrega</option></select>
       <textarea name="notas" rows="2" placeholder="Notas: nombre de tu perro, timbre, etc. (opcional)"></textarea>
