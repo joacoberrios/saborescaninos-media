@@ -7,7 +7,7 @@ window.TIENDA = {
   // Punto de salida de los repartos y de retiro en tienda
   direccionTienda: "Posta del Retamo 1884, Ciudad de Mendoza",
   // Coordenadas exactas (opcional). Si es null, la web las busca a partir de la dirección.
-  origen: null,
+  origen: { lat: -32.8759943, lng: -68.8713330 },
   precioPorKm: 200,
   envioGratisDesde: 30000,
   ofertasSinEnvioGratis: true, // los pedidos con productos en oferta pagan envío

@@ -162,3 +162,7 @@ img { max-width: 100%; display: block; }
 .modo label { display: flex; align-items: center; gap: 6px; justify-content: center; padding: 10px 8px; border: 1px solid var(--borde); border-radius: 12px; background: var(--blanco); cursor: pointer; font-size: .9rem; }
 .modo label:has(input:checked) { border-color: var(--naranja); background: #FFF0DD; font-weight: 600; }
 .modo input { accent-color: var(--naranja); }
+.cinta.gris { background: var(--suave); }
+.producto.agotado .foto img { filter: grayscale(1); opacity: .6; }
+.precio .vence { flex-basis: 100%; font-size: .75rem; font-weight: 600; color: var(--naranja-osc); }
+.hero-badge .chico { font-weight: 600; letter-spacing: .1em; font-size: .85rem; }

@@ -28,6 +28,8 @@
   }
 
   function agregar(vid) {
+    const pv = buscarVariante(vid);
+    if (!pv || !pv.v.stock) return aviso("Ese producto está sin stock 😔");
     const it = carrito.find((x) => x.vid === vid);
     if (it) it.cant++;
     else carrito.push({ vid, cant: 1 });
@@ -231,33 +233,46 @@
       if (txt && !(p.nombre + " " + p.marca).toLowerCase().includes(txt)) return false;
       return true;
     });
+    const hayStock = (p) => (p.variantes.some((v) => v.stock) ? 0 : 1);
+    lista.sort((a, b) => hayStock(a) - hayStock(b));
     const min = (p) => Math.min(...p.variantes.map(precioFinal));
     if (filtro.orden === "menor") lista.sort((a, b) => min(a) - min(b));
     if (filtro.orden === "mayor") lista.sort((a, b) => min(b) - min(a));
     if (filtro.orden === "nombre") lista.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    if (filtro.orden) lista.sort((a, b) => hayStock(a) - hayStock(b));
     return lista;
   }
 
   function tarjeta(p) {
-    const v = p.variantes[0];
+    const v = p.variantes.find((x) => x.oferta) || p.variantes.find((x) => x.stock) || p.variantes[0];
+    const agotado = !p.variantes.some((x) => x.stock);
     const pct = (x) => Math.round((1 - x.oferta / x.precio) * 100);
+    let cinta = "";
+    if (agotado) cinta = `<span class="cinta gris">Sin stock</span>`;
+    else if (v.oferta) cinta = `<span class="cinta">-${pct(v)}%</span>`;
     return `
-      <article class="producto" data-id="${p.id}">
-        ${v.oferta ? `<span class="cinta">-${pct(v)}%</span>` : ""}
+      <article class="producto${agotado ? " agotado" : ""}" data-id="${p.id}">
+        ${cinta}
         <div class="foto">${p.imagen ? `<img src="${esc(p.imagen)}" alt="${esc(p.nombre)}" loading="lazy">` : "🐶"}</div>
         <div class="cuerpo">
           <span class="marca">${esc(p.marca)}</span>
           <h3>${esc(p.nombre)}</h3>
-          ${p.variantes.length > 1 ? `<select data-var aria-label="Presentación">${p.variantes.map((x) => `<option value="${x.id}">${esc(x.nombre)}</option>`).join("")}</select>` : ""}
+          ${p.variantes.length > 1 ? `<select data-var aria-label="Presentación">${p.variantes.map((x) => `<option value="${x.id}"${x.id === v.id ? " selected" : ""}>${esc(x.nombre)}${x.stock ? "" : " (sin stock)"}</option>`).join("")}</select>` : ""}
           <div class="precio">${precioHtml(v)}</div>
-          <button class="btn" data-agregar="${v.id}">Agregar</button>
+          ${botonHtml(v)}
         </div>
       </article>`;
   }
+  const fechaCorta = (iso) => iso.slice(8, 10) + "/" + iso.slice(5, 7);
   function precioHtml(v) {
     return v.oferta
-      ? `<span class="actual">${pesos(v.oferta)}</span><span class="antes">${pesos(v.precio)}</span>`
+      ? `<span class="actual">${pesos(v.oferta)}</span><span class="antes">${pesos(v.precio)}</span><span class="vence">Oferta hasta el ${fechaCorta(v.oferta_hasta)}</span>`
       : `<span class="actual">${pesos(v.precio)}</span>`;
+  }
+  function botonHtml(v) {
+    return v.stock
+      ? `<button class="btn" data-agregar="${v.id}">Agregar</button>`
+      : `<button class="btn" data-agregar="${v.id}" disabled>Sin stock</button>`;
   }
 
   function pintarCatalogo() {
@@ -312,7 +327,7 @@
     const p = datos.productos.find((x) => x.id === Number(card.dataset.id));
     const v = p.variantes.find((x) => x.id === Number(e.target.value));
     card.querySelector(".precio").innerHTML = precioHtml(v);
-    card.querySelector("[data-agregar]").dataset.agregar = v.id;
+    card.querySelector("[data-agregar]").outerHTML = botonHtml(v);
   });
   $("#buscar").addEventListener("input", (e) => cambiarFiltro({ texto: e.target.value }));
   $("#marca").addEventListener("change", (e) => cambiarFiltro({ marca: e.target.value }));
@@ -346,17 +361,25 @@
   fetch("datos/productos.json", { cache: "no-cache" })
     .then((r) => r.json())
     .then((d) => {
+      // Ofertas vencidas o sin stock no se muestran aunque el catálogo no se haya actualizado
+      const hoy = new Date().toLocaleDateString("sv");
+      d.productos.forEach((p) => p.variantes.forEach((v) => {
+        if (v.oferta && (!v.stock || !v.oferta_hasta || v.oferta_hasta < hoy)) v.oferta = null;
+      }));
       datos = d;
       $("#avisoMuestra").hidden = !d.muestra;
       $("#actualizado").textContent = d.actualizado;
       const marcas = [...new Set(d.productos.map((p) => p.marca).filter(Boolean))].sort();
       $("#marca").innerHTML += marcas.map((m) => `<option>${esc(m)}</option>`).join("");
-      if (d.descuento_bolsas && d.productos.some((p) => p.variantes.some((v) => v.oferta))) {
-        $("#badgePct").textContent = `${d.descuento_bolsas}%`;
-        $("#badgeKg").textContent = d.kg_bolsa_grande;
+      const enOferta = d.productos.flatMap((p) => p.variantes).filter((v) => v.oferta);
+      if (enOferta.length) {
+        const max = Math.max(...enOferta.map((v) => Math.round((1 - v.oferta / v.precio) * 100)));
+        $("#badgePct").textContent = `-${max}%`;
         $("#badgeOferta").hidden = false;
+      } else {
+        document.querySelector('[data-filtro="ofertas"]').hidden = true;
       }
-      carrito = carrito.filter((it) => buscarVariante(it.vid));
+      carrito = carrito.filter((it) => { const pv = buscarVariante(it.vid); return pv && pv.v.stock; });
       pintarCatalogo();
       pintarCarrito();
     })
