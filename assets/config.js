@@ -13,7 +13,7 @@ window.TIENDA = {
     { nombre: "Maipú", costo: null },
     { nombre: "Luján de Cuyo", costo: null },
   ],
-  envioGratisDesde: null,  // [COMPLETAR] monto en pesos
+  envioGratisDesde: 30000,
   diasEntrega: "[COMPLETAR: ej. lunes a sábado, 9 a 19 h]",
   plazoEntrega: "[COMPLETAR: ej. 24 a 48 h]",
   mediosDePago: ["Efectivo", "Transferencia", "Mercado Pago"], // [CONFIRMAR]
