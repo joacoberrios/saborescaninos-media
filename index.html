@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sabores Caninos · Pet shop en Mendoza</title>
+<meta name="description" content="Alimento balanceado, snacks y accesorios para perros y gatos con envío a domicilio en Gran Mendoza. Pedí online y recibilo en tu casa.">
+<meta property="og:title" content="Sabores Caninos · Pet shop en Mendoza">
+<meta property="og:description" content="Alimento balanceado con envío a domicilio en Gran Mendoza. Ofertas en bolsas grandes.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/estilos.css">
+</head>
+<body>
+<header class="barra">
+  <a class="logo" href="#inicio">🐾 Sabores <span>Caninos</span></a>
+  <nav class="nav">
+    <a href="#catalogo">Productos</a>
+    <a href="#envios">Envíos</a>
+    <a href="#como">Cómo comprar</a>
+  </nav>
+  <button class="btn-carrito" id="abrirCarrito" aria-label="Abrir carrito">
+    🛒 <span id="contador">0</span>
+  </button>
+</header>
+
+<main>
+  <section class="hero" id="inicio">
+    <div class="hero-txt">
+      <p class="etiqueta">Pet shop en Mendoza</p>
+      <h1>Que nunca le falte su alimento.</h1>
+      <p>Balanceado, snacks y accesorios con <strong>envío a domicilio en Gran Mendoza</strong>. Elegí, armá tu pedido y te lo llevamos.</p>
+      <div class="hero-acciones">
+        <a class="btn" href="#catalogo">Ver productos</a>
+        <a class="btn btn-sec" href="#" data-filtro="ofertas">Ofertas en bolsas grandes</a>
+      </div>
+    </div>
+    <div class="hero-badge" id="badgeOferta" hidden>
+      <span class="grande" id="badgePct"></span>
+      <span>OFF en bolsas<br>de <b id="badgeKg"></b> kg o más</span>
+    </div>
+  </section>
+
+  <section class="catalogo" id="catalogo">
+    <div class="aviso" id="avisoMuestra" hidden>
+      Catálogo de muestra: los precios y productos se actualizan desde nuestro proveedor antes de abrir la tienda.
+    </div>
+    <div class="filtros">
+      <input type="search" id="buscar" placeholder="Buscá por marca o producto…" aria-label="Buscar">
+      <div class="chips" id="chips">
+        <button data-cat="todos" class="activo">Todos</button>
+        <button data-cat="ofertas">🔥 Ofertas</button>
+        <button data-cat="perros">Perros</button>
+        <button data-cat="gatos">Gatos</button>
+        <button data-cat="snacks">Snacks</button>
+        <button data-cat="accesorios">Accesorios</button>
+      </div>
+      <div class="selects">
+        <select id="marca" aria-label="Marca"><option value="">Todas las marcas</option></select>
+        <select id="orden" aria-label="Ordenar">
+          <option value="">Ordenar</option>
+          <option value="menor">Menor precio</option>
+          <option value="mayor">Mayor precio</option>
+          <option value="nombre">A–Z</option>
+        </select>
+      </div>
+    </div>
+    <p class="resultado" id="resultado"></p>
+    <div class="grilla" id="grilla"></div>
+    <button class="btn btn-sec mas" id="verMas" hidden>Ver más productos</button>
+  </section>
+
+  <section class="info" id="envios">
+    <h2>Envíos 🚚</h2>
+    <div class="tarjetas">
+      <div class="tarjeta"><h3>Zonas</h3><ul id="listaZonas"></ul></div>
+      <div class="tarjeta"><h3>Envío gratis</h3><p id="txtGratis"></p></div>
+      <div class="tarjeta"><h3>Días y horarios</h3><p id="txtDias"></p><p class="suave" id="txtPlazo"></p></div>
+      <div class="tarjeta"><h3>Formas de pago</h3><p id="txtPagos"></p></div>
+    </div>
+  </section>
+
+  <section class="info" id="como">
+    <h2>Cómo comprar</h2>
+    <ol class="pasos">
+      <li><b>Elegí</b> tus productos y la presentación.</li>
+      <li><b>Completá</b> tus datos y la zona de entrega.</li>
+      <li><b>Enviá</b> el pedido por WhatsApp: te confirmamos el total y el horario.</li>
+    </ol>
+    <p class="suave">¿Tenés un pet shop o veterinaria? También distribuimos. Escribinos por WhatsApp con la palabra <b>MAYORISTA</b>.</p>
+  </section>
+</main>
+
+<footer class="pie">
+  <p>🐾 Sabores Caninos · Mendoza, Argentina</p>
+  <p><a id="linkIg" target="_blank" rel="noopener">Instagram</a><span id="sepWa"> · <a id="linkWa" target="_blank" rel="noopener">WhatsApp</a></span></p>
+  <p class="suave">Precios en pesos argentinos, sujetos a disponibilidad. Actualizado: <span id="actualizado"></span></p>
+</footer>
+
+<div class="velo" id="velo" hidden></div>
+<aside class="carrito" id="carrito" aria-hidden="true">
+  <div class="carrito-cab">
+    <h2>Tu pedido</h2>
+    <button class="cerrar" id="cerrarCarrito" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="carrito-items" id="items"></div>
+  <form class="carrito-form" id="formPedido">
+    <div class="totales" id="totales"></div>
+    <fieldset>
+      <legend>Datos de entrega</legend>
+      <input name="nombre" placeholder="Nombre y apellido" required autocomplete="name">
+      <input name="telefono" placeholder="Teléfono" required inputmode="tel" autocomplete="tel">
+      <input name="direccion" placeholder="Dirección (calle, número, barrio)" required autocomplete="street-address">
+      <select name="zona" id="selZona" required><option value="">Zona de entrega</option></select>
+      <select name="pago" id="selPago" required><option value="">Forma de pago</option></select>
+      <input name="horario" placeholder="Día y horario preferido (opcional)">
+      <textarea name="notas" rows="2" placeholder="Notas: nombre de tu perro, timbre, etc. (opcional)"></textarea>
+    </fieldset>
+    <button class="btn btn-wa" type="submit" id="btnEnviar">Enviar pedido por WhatsApp</button>
+    <p class="suave centro" id="avisoWa"></p>
+  </form>
+</aside>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="assets/config.js"></script>
+<script src="assets/tienda.js"></script>
+</body>
+</html>
