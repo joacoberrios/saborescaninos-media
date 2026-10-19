@@ -76,8 +76,9 @@
     <h2>Envíos 🚚</h2>
     <div class="tarjetas">
       <div class="tarjeta"><h3>Zonas</h3><ul id="listaZonas"></ul></div>
+      <div class="tarjeta"><h3>Costo</h3><p id="txtCosto"></p><p class="suave">Lo calculás en el carrito con tu dirección.</p></div>
       <div class="tarjeta"><h3>Envío gratis</h3><p id="txtGratis"></p></div>
-      <div class="tarjeta"><h3>Días y horarios</h3><p id="txtDias"></p><p class="suave" id="txtPlazo"></p></div>
+      <div class="tarjeta"><h3>Días y horarios</h3><p id="txtDias"></p></div>
       <div class="tarjeta"><h3>Formas de pago</h3><p id="txtPagos"></p></div>
     </div>
   </section>
@@ -112,10 +113,15 @@
       <legend>Datos de entrega</legend>
       <input name="nombre" placeholder="Nombre y apellido" required autocomplete="name">
       <input name="telefono" placeholder="Teléfono" required inputmode="tel" autocomplete="tel">
-      <input name="direccion" placeholder="Dirección (calle, número, barrio)" required autocomplete="street-address">
-      <select name="zona" id="selZona" required><option value="">Zona de entrega</option></select>
+      <input name="direccion" id="inDireccion" placeholder="Dirección (calle, número, barrio)" required autocomplete="street-address">
+      <select name="zona" id="selZona" required><option value="">Departamento</option></select>
+      <div class="envio-calc">
+        <button type="button" class="btn btn-sec chico" id="btnCalcular">🚚 Calcular envío</button>
+        <button type="button" class="btn btn-sec chico" id="btnUbicacion">📍 Usar mi ubicación</button>
+      </div>
+      <p class="suave" id="estadoEnvio"></p>
       <select name="pago" id="selPago" required><option value="">Forma de pago</option></select>
-      <input name="horario" placeholder="Día y horario preferido (opcional)">
+      <select name="dia" id="selDia" required><option value="">Día de entrega</option></select>
       <textarea name="notas" rows="2" placeholder="Notas: nombre de tu perro, timbre, etc. (opcional)"></textarea>
     </fieldset>
     <button class="btn btn-wa" type="submit" id="btnEnviar">Enviar pedido por WhatsApp</button>

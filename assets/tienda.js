@@ -45,23 +45,79 @@
     pintarCarrito();
   }
 
-  function zonaElegida() {
-    return T.zonas.find((z) => z.nombre === $("#selZona").value);
+  // ---------- Envío: $ por km desde el punto de salida ----------
+  let destino = null; // { lat, lng, km }
+
+  function haversineKm(a, b) {
+    const r = (x) => (x * Math.PI) / 180;
+    const d = Math.sin(r(b.lat - a.lat) / 2) ** 2 +
+      Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lng - a.lng) / 2) ** 2;
+    return 6371 * 2 * Math.asin(Math.sqrt(d));
   }
+
+  async function kmPorCalle(desde, hasta) {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${desde.lng},${desde.lat};${hasta.lng},${hasta.lat}?overview=false`;
+      const r = await (await fetch(url)).json();
+      if (r.routes && r.routes[0]) return r.routes[0].distance / 1000;
+    } catch { /* sin ruteo: se estima */ }
+    return haversineKm(desde, hasta) * 1.3; // estimación por calle
+  }
+
+  async function fijarDestino(punto, fuente) {
+    if (!T.origen) {
+      destino = { ...punto, km: null };
+      estadoEnvio("Ubicación guardada. Te confirmamos el costo del envío por WhatsApp.");
+    } else {
+      estadoEnvio("Calculando distancia…");
+      const km = await kmPorCalle(T.origen, punto);
+      destino = { ...punto, km };
+      estadoEnvio(`${fuente}: ${km.toFixed(1)} km → ${pesos(costoEnvio(km))}`);
+    }
+    pintarCarrito();
+  }
+
+  async function calcularPorDireccion() {
+    const dir = $("#inDireccion").value.trim();
+    if (!dir) return estadoEnvio("Escribí tu dirección primero.");
+    estadoEnvio("Buscando tu dirección…");
+    try {
+      const q = encodeURIComponent(`${dir}, ${$("#selZona").value || ""}, Mendoza, Argentina`);
+      const r = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${q}`)).json();
+      if (!r.length) return estadoEnvio("No encontramos la dirección. Probá con calle y número, o usá tu ubicación.");
+      await fijarDestino({ lat: Number(r[0].lat), lng: Number(r[0].lon) }, "Tu dirección");
+    } catch {
+      estadoEnvio("No pudimos calcular ahora. Te confirmamos el envío por WhatsApp.");
+    }
+  }
+
+  function calcularPorUbicacion() {
+    if (!navigator.geolocation) return estadoEnvio("Tu navegador no permite compartir la ubicación.");
+    estadoEnvio("Obteniendo tu ubicación…");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => fijarDestino({ lat: pos.coords.latitude, lng: pos.coords.longitude }, "Tu ubicación"),
+      () => estadoEnvio("No pudimos obtener tu ubicación. Probá con la dirección."),
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
+
+  const costoEnvio = (km) => Math.ceil(km) * T.precioPorKm;
+  const estadoEnvio = (txt) => { $("#estadoEnvio").textContent = txt; };
 
   function calcular() {
     const lineas = carrito.map((it) => ({ ...it, ...buscarVariante(it.vid) })).filter((l) => l.v);
     const subtotal = lineas.reduce((s, l) => s + precioFinal(l.v) * l.cant, 0);
     const ahorro = lineas.reduce((s, l) => s + (l.v.oferta ? (l.v.precio - l.v.oferta) * l.cant : 0), 0);
+    const conOferta = lineas.some((l) => l.v.oferta);
+    const gratis = subtotal >= T.envioGratisDesde && !(T.ofertasSinEnvioGratis && conOferta);
     let envio = null;
-    const z = zonaElegida();
-    if (T.envioGratisDesde != null && subtotal >= T.envioGratisDesde) envio = 0;
-    else if (z && z.costo != null) envio = z.costo;
-    return { lineas, subtotal, ahorro, envio, total: subtotal + (envio || 0) };
+    if (gratis) envio = 0;
+    else if (destino && destino.km != null) envio = costoEnvio(destino.km);
+    return { lineas, subtotal, ahorro, conOferta, envio, total: subtotal + (envio || 0) };
   }
 
   function pintarCarrito() {
-    const { lineas, subtotal, ahorro, envio, total } = calcular();
+    const { lineas, subtotal, ahorro, conOferta, envio, total } = calcular();
     $("#contador").textContent = lineas.reduce((s, l) => s + l.cant, 0);
     $("#items").innerHTML = lineas.length
       ? lineas.map((l) => `
@@ -69,7 +125,7 @@
           ${l.p.imagen ? `<img src="${esc(l.p.imagen)}" alt="" loading="lazy">` : `<div class="ph">🐶</div>`}
           <div>
             <div class="nom">${esc(l.p.nombre)}</div>
-            <div class="sub">${esc(l.v.nombre)} · ${pesos(precioFinal(l.v))}</div>
+            <div class="sub">${esc(l.v.nombre)} · ${pesos(precioFinal(l.v))}${l.v.oferta ? " · oferta" : ""}</div>
           </div>
           <div class="cant">
             <button type="button" data-menos="${l.vid}" aria-label="Quitar uno">−</button>
@@ -79,17 +135,35 @@
         </div>`).join("")
       : `<p class="vacio">Tu pedido está vacío.<br>Agregá productos del catálogo 🐾</p>`;
 
-    let envioTxt = "A confirmar";
+    let envioTxt = `${pesos(T.precioPorKm)}/km · calculalo abajo`;
     if (envio === 0) envioTxt = "¡Gratis!";
     else if (envio != null) envioTxt = pesos(envio);
-    else if (!zonaElegida()) envioTxt = "Elegí tu zona";
+    else if (destino) envioTxt = "A confirmar";
+    let nota = "";
+    if (conOferta && T.ofertasSinEnvioGratis) nota = "Los pedidos con productos en oferta no tienen envío gratis.";
+    else if (subtotal < T.envioGratisDesde) nota = `Te faltan ${pesos(T.envioGratisDesde - subtotal)} para el envío gratis.`;
     $("#totales").innerHTML = lineas.length ? `
       <div class="fila"><span>Subtotal</span><span>${pesos(subtotal)}</span></div>
       ${ahorro ? `<div class="fila" style="color:var(--verde)"><span>Ahorrás</span><span>${pesos(ahorro)}</span></div>` : ""}
       <div class="fila"><span>Envío</span><span>${envioTxt}</span></div>
-      <div class="fila total"><span>Total</span><span>${pesos(total)}</span></div>
-      ${T.envioGratisDesde != null && subtotal < T.envioGratisDesde ? `<div class="suave">Te faltan ${pesos(T.envioGratisDesde - subtotal)} para el envío gratis</div>` : ""}` : "";
+      <div class="fila total"><span>Total</span><span>${pesos(total)}${envio == null ? " + envío" : ""}</span></div>
+      ${nota ? `<div class="suave">${nota}</div>` : ""}` : "";
     $("#btnEnviar").disabled = !lineas.length || !T.whatsapp;
+  }
+
+  // Próximas fechas de entrega según los días configurados
+  function proximasEntregas(n = 4) {
+    const fechas = [];
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    while (fechas.length < n) {
+      if (T.diasEntrega.includes(d.getDay())) {
+        const txt = d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "numeric" });
+        fechas.push(`${txt.charAt(0).toUpperCase() + txt.slice(1)} · ${T.horarioEntrega}`);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return fechas;
   }
 
   // ---------- Pedido por WhatsApp ----------
@@ -98,6 +172,9 @@
     const f = new FormData(e.target);
     const { lineas, subtotal, ahorro, envio, total } = calcular();
     if (!lineas.length || !T.whatsapp) return;
+    let envioTxt = "a confirmar";
+    if (envio === 0) envioTxt = "gratis";
+    else if (envio != null) envioTxt = `${pesos(envio)} (${destino.km.toFixed(1)} km)`;
     const nro = "SC-" + new Date().toISOString().slice(2, 16).replace(/\D/g, "");
     const msg = [
       `¡Hola ${T.nombre}! 🐾 Quiero hacer este pedido (${nro}):`,
@@ -106,14 +183,15 @@
       "",
       `Subtotal: ${pesos(subtotal)}`,
       ahorro ? `Ahorro por oferta: ${pesos(ahorro)}` : null,
-      `Envío: ${envio === 0 ? "gratis" : envio != null ? pesos(envio) : "a confirmar"}`,
-      `*Total: ${pesos(total)}*`,
+      `Envío: ${envioTxt}`,
+      `*Total: ${pesos(total)}${envio == null ? " + envío" : ""}*`,
       "",
       `Nombre: ${f.get("nombre")}`,
       `Teléfono: ${f.get("telefono")}`,
       `Dirección: ${f.get("direccion")} (${f.get("zona")})`,
+      destino ? `Ubicación: https://maps.google.com/?q=${destino.lat.toFixed(5)},${destino.lng.toFixed(5)}` : null,
+      `Entrega: ${f.get("dia")}`,
       `Pago: ${f.get("pago")}`,
-      f.get("horario") ? `Horario: ${f.get("horario")}` : null,
       f.get("notas") ? `Notas: ${f.get("notas")}` : null,
     ].filter((x) => x !== null).join("\n");
     window.open(`https://wa.me/${T.whatsapp}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
@@ -174,12 +252,14 @@
 
   // ---------- Info del negocio ----------
   function pintarInfo() {
-    $("#listaZonas").innerHTML = T.zonas.map((z) => `<li>${esc(z.nombre)}${z.costo === 0 ? " — gratis" : z.costo ? " — " + pesos(z.costo) : ""}</li>`).join("");
-    $("#txtGratis").textContent = T.envioGratisDesde != null ? `En compras desde ${pesos(T.envioGratisDesde)}.` : "Consultanos por WhatsApp.";
-    $("#txtDias").textContent = T.diasEntrega;
-    $("#txtPlazo").textContent = "Entrega: " + T.plazoEntrega;
-    $("#txtPagos").textContent = T.mediosDePago.join(" · ");
-    $("#selZona").innerHTML += T.zonas.map((z) => `<option>${esc(z.nombre)}</option>`).join("");
+    $("#listaZonas").innerHTML = T.zonas.map((z) => `<li>${esc(z)}</li>`).join("");
+    $("#txtCosto").textContent = `${pesos(T.precioPorKm)} por km.`;
+    $("#txtGratis").textContent = `En compras desde ${pesos(T.envioGratisDesde)}` +
+      (T.ofertasSinEnvioGratis ? " (no aplica a pedidos con productos en oferta)." : ".");
+    const nombresDias = T.diasEntrega.map((n) => ["domingos", "lunes", "martes", "miércoles", "jueves", "viernes", "sábados"][n]);
+    $("#txtDias").textContent = `${nombresDias.join(" y ").replace(/^./, (c) => c.toUpperCase())} de ${T.horarioEntrega}.`;
+    $("#selZona").innerHTML += T.zonas.map((z) => `<option>${esc(z)}</option>`).join("");
+    $("#selDia").innerHTML += proximasEntregas().map((d) => `<option>${esc(d)}</option>`).join("");
     $("#selPago").innerHTML += T.mediosDePago.map((m) => `<option>${esc(m)}</option>`).join("");
     $("#linkIg").href = `https://www.instagram.com/${T.instagram}/`;
     if (T.whatsapp) $("#linkWa").href = `https://wa.me/${T.whatsapp}`;
@@ -213,7 +293,9 @@
   $("#marca").addEventListener("change", (e) => cambiarFiltro({ marca: e.target.value }));
   $("#orden").addEventListener("change", (e) => cambiarFiltro({ orden: e.target.value }));
   $("#verMas").addEventListener("click", () => { mostrados += POR_PAGINA; pintarCatalogo(); });
-  $("#selZona").addEventListener("change", pintarCarrito);
+  $("#btnCalcular").addEventListener("click", calcularPorDireccion);
+  $("#btnUbicacion").addEventListener("click", calcularPorUbicacion);
+  $("#inDireccion").addEventListener("input", () => { if (destino) { destino = null; estadoEnvio(""); pintarCarrito(); } });
   $("#formPedido").addEventListener("submit", enviarPedido);
 
   const abrir = (si) => {

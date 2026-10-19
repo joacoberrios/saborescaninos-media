@@ -1,20 +1,17 @@
 // Datos del negocio. Editar acá: la web los toma automáticamente.
 window.TIENDA = {
   nombre: "Sabores Caninos",
-  // WhatsApp de pedidos en formato internacional, sin + ni espacios: 549261XXXXXXX
-  whatsapp: "",            // [COMPLETAR]
+  // WhatsApp de pedidos en formato internacional, sin + ni espacios
+  whatsapp: "5492615166830",
   instagram: "sabores.caninos",
-  // Zonas de entrega y costo de envío (0 = gratis)
-  zonas: [
-    { nombre: "Capital", costo: null },      // [COMPLETAR costo]
-    { nombre: "Godoy Cruz", costo: null },
-    { nombre: "Guaymallén", costo: null },
-    { nombre: "Las Heras", costo: null },
-    { nombre: "Maipú", costo: null },
-    { nombre: "Luján de Cuyo", costo: null },
-  ],
+  // Punto de salida de los repartos para calcular los km: { lat: -32.9, lng: -68.8 }
+  origen: null,            // [COMPLETAR]
+  precioPorKm: 200,
   envioGratisDesde: 30000,
-  diasEntrega: "[COMPLETAR: ej. lunes a sábado, 9 a 19 h]",
-  plazoEntrega: "[COMPLETAR: ej. 24 a 48 h]",
+  ofertasSinEnvioGratis: true, // los pedidos con productos en oferta pagan envío
+  zonas: ["Capital", "Godoy Cruz", "Guaymallén", "Las Heras", "Maipú", "Luján de Cuyo"],
+  // Días de entrega (0 = domingo … 6 = sábado)
+  diasEntrega: [3, 5],
+  horarioEntrega: "15 a 19 h",
   mediosDePago: ["Efectivo", "Transferencia", "Mercado Pago"], // [CONFIRMAR]
 };
