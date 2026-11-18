@@ -85,6 +85,9 @@ img { max-width: 100%; display: block; }
   font: 500 .95rem "Poppins", sans-serif; padding: 6px 14px; border-radius: 999px; cursor: pointer;
 }
 .chips button.activo { background: var(--marron); color: var(--blanco); border-color: var(--marron); }
+.chips.sub { margin-top: 8px; }
+.chips[hidden] { display: none; }
+.chips.sub button { font-size: .85rem; padding: 4px 12px; }
 .selects { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .resultado { color: var(--suave); font-size: .9rem; margin: 12px 0; }
 

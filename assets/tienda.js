@@ -6,7 +6,7 @@
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   let datos = { productos: [] };
-  let filtro = { cat: "todos", texto: "", marca: "", orden: "" };
+  let filtro = { cat: "todos", especie: "", texto: "", marca: "", orden: "" };
   let mostrados = POR_PAGINA;
   let carrito = leer();
 
@@ -229,6 +229,7 @@
     let lista = datos.productos.filter((p) => {
       if (filtro.cat === "ofertas" && !p.variantes.some((v) => v.oferta)) return false;
       if (!["todos", "ofertas"].includes(filtro.cat) && p.categoria !== filtro.cat) return false;
+      if (filtro.cat === "humedo" && filtro.especie && p.especie !== filtro.especie) return false;
       if (filtro.marca && p.marca !== filtro.marca) return false;
       if (txt && !(p.nombre + " " + p.marca).toLowerCase().includes(txt)) return false;
       return true;
@@ -283,9 +284,12 @@
   }
 
   function cambiarFiltro(cambios) {
+    if (cambios.cat && cambios.cat !== filtro.cat) filtro.especie = "";
     Object.assign(filtro, cambios);
     mostrados = POR_PAGINA;
     document.querySelectorAll("#chips button").forEach((b) => b.classList.toggle("activo", b.dataset.cat === filtro.cat));
+    $("#chipsEspecie").hidden = filtro.cat !== "humedo";
+    document.querySelectorAll("#chipsEspecie button").forEach((b) => b.classList.toggle("activo", b.dataset.especie === filtro.especie));
     pintarCatalogo();
   }
 
@@ -309,12 +313,13 @@
 
   // ---------- Eventos ----------
   document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-agregar],[data-mas],[data-menos],[data-cat],[data-filtro]");
+    const t = e.target.closest("[data-agregar],[data-mas],[data-menos],[data-cat],[data-filtro],[data-especie]");
     if (!t) return;
     if (t.dataset.agregar) agregar(Number(t.dataset.agregar));
     if (t.dataset.mas) cambiar(Number(t.dataset.mas), 1);
     if (t.dataset.menos) cambiar(Number(t.dataset.menos), -1);
     if (t.dataset.cat) cambiarFiltro({ cat: t.dataset.cat });
+    if (t.dataset.especie !== undefined) cambiarFiltro({ especie: t.dataset.especie });
     if (t.dataset.filtro) {
       e.preventDefault();
       cambiarFiltro({ cat: t.dataset.filtro });
