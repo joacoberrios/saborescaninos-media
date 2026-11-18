@@ -169,3 +169,5 @@ img { max-width: 100%; display: block; }
 .producto.agotado .foto img { filter: grayscale(1); opacity: .6; }
 .precio .vence { flex-basis: 100%; font-size: .75rem; font-weight: 600; color: var(--naranja-osc); }
 .hero-badge .chico { font-weight: 600; letter-spacing: .1em; font-size: .85rem; }
+.peso { display: inline-block; background: var(--crema, #FFF4E2); color: var(--marron, #6B3E26); border: 1px solid var(--borde); font: 600 .8rem "Poppins", sans-serif; padding: 2px 10px; border-radius: 999px; }
+.pesoBox:empty { display: none; }

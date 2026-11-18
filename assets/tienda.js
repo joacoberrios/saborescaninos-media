@@ -258,13 +258,22 @@
         <div class="cuerpo">
           <span class="marca">${esc(p.marca)}</span>
           <h3>${esc(p.nombre)}</h3>
-          ${p.variantes.length > 1 ? `<select data-var aria-label="Presentación">${p.variantes.map((x) => `<option value="${x.id}"${x.id === v.id ? " selected" : ""}>${esc(x.nombre)}${x.stock ? "" : " (sin stock)"}</option>`).join("")}</select>` : ""}
+          ${p.variantes.length > 1 ? `<select data-var aria-label="Presentación">${p.variantes.map((x) => `<option value="${x.id}"${x.id === v.id ? " selected" : ""}>${esc(pesoTexto(x) || x.nombre)} · ${pesos(precioFinal(x))}${x.stock ? "" : " (sin stock)"}</option>`).join("")}</select>` : ""}
+          <div class="pesoBox">${p.variantes.length > 1 ? "" : pesoHtml(v)}</div>
           <div class="precio">${precioHtml(v)}</div>
           ${botonHtml(v)}
         </div>
       </article>`;
   }
   const fechaCorta = (iso) => iso.slice(8, 10) + "/" + iso.slice(5, 7);
+  function pesoTexto(v) {
+    if (v.kg) return v.kg < 1 ? `${Math.round(v.kg * 1000)} g` : `${String(v.kg).replace(".", ",")} kg`;
+    return v.nombre || "";
+  }
+  function pesoHtml(v) {
+    const t = pesoTexto(v);
+    return t ? `<span class="peso">${esc(t)}</span>` : "";
+  }
   function precioHtml(v) {
     return v.oferta
       ? `<span class="actual">${pesos(v.oferta)}</span><span class="antes">${pesos(v.precio)}</span><span class="vence">Oferta hasta el ${fechaCorta(v.oferta_hasta)}</span>`
